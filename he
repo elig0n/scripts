@@ -39,31 +39,36 @@ case $manpage in *\(*\))
     ;;
 esac
 
-man ${section:+-s $section} "$manpage" | perl -n -e '
-BEGIN {
-    $option = "'$option'";
-    $inside_option = 0;
-}
-if (!$inside_option) {
-    if (/^(\s*)\Q$option\E\b/p) {
-        # start of this option
-        $option_indentation = $1;
-        $inside_option = 1;
-        $saw_blank_line = 0;
-        print;
+argc=$#
+argv=("$@")
+
+for (( j=1; j<argc; j++ )); do
+    man ${section:+-s $section} "$manpage" | perl -n -e '
+    BEGIN {
+            $option = "'${argv[j]}'";
+            $inside_option = 0;
     }
-} else {
-    if (/^$/) {
-        $saw_blank_line = 1;
-        print;
-    } elsif (/^\Q$option_indentation\E\S/ and $saw_blank_line) {
-        # item at same indentation => start of next option
-        $inside_option = 0;
-    } elsif (/^\S/) {
-        # new heading => start of next section
-        $inside_option = 0;
+    if (!$inside_option) {
+        if (/^(\s*)\Q$option\E\b/p) {
+            # start of this option
+            $option_indentation = $1;
+            $inside_option = 1;
+            $saw_blank_line = 0;
+            print;
+        }
     } else {
-        print;
+        if (/^$/) {
+            $saw_blank_line = 1;
+            print;
+        } elsif (/^\Q$option_indentation\E\S/ and $saw_blank_line) {
+            # item at same indentation => start of next option
+            $inside_option = 0;
+        } elsif (/^\S/) {
+            # new heading => start of next section
+            $inside_option = 0;
+        } else {
+            print;
+        }
     }
-}
 '
+done
